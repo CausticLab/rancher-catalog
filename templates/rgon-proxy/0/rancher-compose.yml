@@ -2,7 +2,7 @@
   name: "rgon-proxy" # Name of the versioned template of the Catalog Entry
   version: "v0.0.1-rancher1" # Version of the versioned template of the Catalog Entry
   description: "An rancher nginx letsencrypt proxy service" # Description of the versioned template of the Catalog Entry
-  uuid: rgon-proxy-1 # Unique identifier to be used for upgrades. Please see note.
+  uuid: rgon-proxy-2 # Unique identifier to be used for upgrades. Please see note.
   questions:
     - variable: config_path
       description: "Directory on the filesystem for the configuration (DO NOT USE VOLUMES)"
