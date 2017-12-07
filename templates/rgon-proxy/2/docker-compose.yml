@@ -23,7 +23,7 @@ services:
         max-size: "10m"
         max-file: "5"
   rgon-proxy:
-    image: "causticlab/rgon-proxy:dev"  # :latest for production
+    image: "causticlab/rgon-proxy:v0.1.1"  # :latest for production
     tty: true
     stdin_open: true
     links:
@@ -39,7 +39,6 @@ services:
       io.rancher.scheduler.global: 'false'
       io.rancher.container.create_agent: 'true'
       io.rancher.container.agent.role: 'environment'
-      io.rancher.container.pull_image: 'always'
       rgon-proxy: rancher-gen
       rgon-acme: 'true'
     logging:

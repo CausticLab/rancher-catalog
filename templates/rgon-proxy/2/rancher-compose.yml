@@ -1,6 +1,6 @@
 .catalog:
   name: "rgon-proxy" # Name of the versioned template of the Catalog Entry
-  version: "v0.0.1-rancher1" # Version of the versioned template of the Catalog Entry
+  version: "v0.1.1" # Version of the versioned template of the Catalog Entry
   description: "An rancher nginx letsencrypt proxy service" # Description of the versioned template of the Catalog Entry
   uuid: rgon-proxy-2 # Unique identifier to be used for upgrades. Please see note.
   questions:
@@ -15,7 +15,7 @@
       label: "Let's Encrypt Email Address"
       type: "string"
     - variable: ACME_AGREE_TOS
-      description: "Accept the Let's Encrypt TOS agreement: https://letsencrypt.org/documents/LE-SA-v1.1.1-August-1-2016.pdf"
+      description: "Accept the Let's Encrypt TOS agreement: https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf"
       label: "Accept LE TOS Agreement"
       type: boolean
       required: true
