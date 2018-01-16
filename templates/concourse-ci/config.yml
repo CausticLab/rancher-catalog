@@ -1,0 +1,6 @@
+name: Concourse-CI
+description: An simple pipeline ci tool where all the configuration for your pipeline is defined as a single declarative config file in your app repository
+version: 0.0.1-2worker
+category: Continuous Integration
+maintainer: CausticLab <https://github.com/CausticLab>
+projectURL: https://github.com/concourse/concourse

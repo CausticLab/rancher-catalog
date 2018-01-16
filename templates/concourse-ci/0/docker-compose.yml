@@ -1,0 +1,73 @@
+version: '2'
+services:
+  concourse-keygen:
+    image: emcniece/concourse-keygen
+    command: tail -f /dev/null
+    labels:
+      io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
+
+  concourse-db:
+    image: postgres:9.6
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWD}
+      PGDATA: /database
+    labels:
+      io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
+
+  concourse-web:
+    image: concourse/concourse
+    links: [concourse-db]
+    depends_on: [concourse-db]
+    command: web
+    restart: unless-stopped
+    ports:
+     - ${PORT}:8080
+    volumes_from:
+      - concourse-keygen:ro
+    environment:
+      CONCOURSE_BASIC_AUTH_USERNAME: ${USER}
+      CONCOURSE_BASIC_AUTH_PASSWORD: ${PASSWORD}
+      CONCOURSE_EXTERNAL_URL: "${DOMAIN_NAME}"
+      CONCOURSE_GITHUB_AUTH_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      CONCOURSE_GITHUB_AUTH_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      CONCOURSE_GITHUB_AUTH_TEAM: ${GITHUB_AUTH_TEAM}
+      CONCOURSE_POSTGRES_HOST: ${DB_HOST}
+      CONCOURSE_POSTGRES_USER: ${DB_USER}
+      CONCOURSE_POSTGRES_PASSWORD: ${DB_PASSWD}
+      CONCOURSE_POSTGRES_DATABASE: ${DB_NAME}
+    labels:
+      io.rancher.sidekicks: concourse-keygen
+      rgon.domain: ${FQDN}
+      io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
+
+  concourse-worker1:
+    image: concourse/concourse
+    privileged: true
+    links: [concourse-web]
+    command: worker --tag=${WORKER1_TAG}
+    volumes_from:
+      - concourse-keygen:ro
+    environment:
+      CONCOURSE_TSA_HOST: concourse-web
+    labels:
+      io.rancher.scheduler.global: "${WORKER1_GLOBAL}"
+      io.rancher.scheduler.affinity:host_label: "${WORKER1_INCLUDE}"
+      io.rancher.scheduler.affinity:host_label_ne: "${WORKER1_EXCLUDE}"
+
+{{- if eq .Values.WORKER2_USE true}} 
+  concourse-worker2:
+    image: concourse/concourse
+    privileged: true
+    links: [concourse-web]
+    command: worker --tag=${WORKER2_TAG}
+    volumes_from:
+      - concourse-keygen:ro
+    environment:
+      CONCOURSE_TSA_HOST: concourse-web
+    labels:
+      io.rancher.scheduler.global: "${WORKER2_GLOBAL}"
+      io.rancher.scheduler.affinity:host_label: "${WORKER2_INCLUDE}"
+      io.rancher.scheduler.affinity:host_label_ne: "${WORKER2_EXCLUDE}"
+{{- end}}
