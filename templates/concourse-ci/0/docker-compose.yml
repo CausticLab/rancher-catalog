@@ -34,7 +34,7 @@ services:
       CONCOURSE_POSTGRES_PASSWORD: ${DB_PASSWD}
       CONCOURSE_POSTGRES_DATABASE: ${DB_NAME}
     labels:
-      io.rancher.sidekicks: concourse-keygen, concourse-worker1, concourse-worker2
+      io.rancher.sidekicks: concourse-keygen, concourse-worker1 {{- if eq .Values.WORKER2_USE true}},concourse-worker2{{- end}}
       rgon.domain: ${FQDN}
       io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
     volumes_from:
