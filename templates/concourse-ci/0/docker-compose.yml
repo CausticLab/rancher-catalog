@@ -34,7 +34,7 @@ services:
       CONCOURSE_POSTGRES_PASSWORD: ${DB_PASSWD}
       CONCOURSE_POSTGRES_DATABASE: ${DB_NAME}
     labels:
-      io.rancher.sidekicks: concourse-keygen
+      io.rancher.sidekicks: concourse-keygen, concourse-worker1, concourse-worker2
       rgon.domain: ${FQDN}
       io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
     volumes_from:
@@ -48,7 +48,6 @@ services:
     environment:
       CONCOURSE_TSA_HOST: concourse-web
     labels:
-      io.rancher.sidekicks: concourse-keygen
       io.rancher.scheduler.global: "${WORKER1_GLOBAL}"
       io.rancher.scheduler.affinity:host_label: "${WORKER1_INCLUDE}"
       io.rancher.scheduler.affinity:host_label_ne: "${WORKER1_EXCLUDE}"
@@ -64,7 +63,6 @@ services:
     environment:
       CONCOURSE_TSA_HOST: concourse-web
     labels:
-      io.rancher.sidekicks: concourse-keygen
       io.rancher.scheduler.global: "${WORKER2_GLOBAL}"
       io.rancher.scheduler.affinity:host_label: "${WORKER2_INCLUDE}"
       io.rancher.scheduler.affinity:host_label_ne: "${WORKER2_EXCLUDE}"
