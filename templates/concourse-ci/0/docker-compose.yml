@@ -3,8 +3,6 @@ services:
   concourse-keygen:
     image: emcniece/concourse-keygen
     command: tail -f /dev/null
-    labels:
-      io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
 
   concourse-db:
     image: postgres:9.6
@@ -24,8 +22,6 @@ services:
     restart: unless-stopped
     ports:
      - ${PORT}:8080
-    volumes_from:
-      - concourse-keygen:ro
     environment:
       CONCOURSE_BASIC_AUTH_USERNAME: ${USER}
       CONCOURSE_BASIC_AUTH_PASSWORD: ${PASSWORD}
@@ -41,14 +37,14 @@ services:
       io.rancher.sidekicks: concourse-keygen
       rgon.domain: ${FQDN}
       io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
+    volumes_from:
+      - concourse-keygen
 
   concourse-worker1:
     image: concourse/concourse
     privileged: true
     links: [concourse-web]
     command: worker --tag=${WORKER1_TAG}
-    volumes_from:
-      - concourse-keygen:ro
     environment:
       CONCOURSE_TSA_HOST: concourse-web
     labels:
@@ -56,6 +52,8 @@ services:
       io.rancher.scheduler.global: "${WORKER1_GLOBAL}"
       io.rancher.scheduler.affinity:host_label: "${WORKER1_INCLUDE}"
       io.rancher.scheduler.affinity:host_label_ne: "${WORKER1_EXCLUDE}"
+    volumes_from:
+      - concourse-keygen
 
 {{- if eq .Values.WORKER2_USE true}} 
   concourse-worker2:
@@ -63,8 +61,6 @@ services:
     privileged: true
     links: [concourse-web]
     command: worker --tag=${WORKER2_TAG}
-    volumes_from:
-      - concourse-keygen:ro
     environment:
       CONCOURSE_TSA_HOST: concourse-web
     labels:
@@ -72,4 +68,6 @@ services:
       io.rancher.scheduler.global: "${WORKER2_GLOBAL}"
       io.rancher.scheduler.affinity:host_label: "${WORKER2_INCLUDE}"
       io.rancher.scheduler.affinity:host_label_ne: "${WORKER2_EXCLUDE}"
+    volumes_from:
+      - concourse-keygen
 {{- end}}
