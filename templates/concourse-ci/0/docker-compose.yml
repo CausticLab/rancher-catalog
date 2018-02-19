@@ -1,73 +1,65 @@
-version: '2'
-services:
-  concourse-keygen:
-    image: emcniece/concourse-keygen
-    command: tail -f /dev/null
-    labels:
-      io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
+concourse-db:
+  image: postgres:9.6
+  labels:
+    io.rancher.container.hostname_override: container_name
+  environment:
+    POSTGRES_DB: concourse
+    POSTGRES_USER: ${DB_USER}
+    POSTGRES_PASSWORD: ${DB_PASSWD}
+    PGDATA: /database
 
-  concourse-db:
-    image: postgres:9.6
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWD}
-      PGDATA: /database
-    labels:
-      io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
+concourse-datavolume:
+  image: alpine
+  labels:
+    io.rancher.container.hostname_override: container_name
+    io.rancher.container.start_once: 'true'
+  volumes:
+    - /var/keys
+  command: sh -c "apk --update add openssh &&
+    rm -rf /var/cache/apk/* &&
+    mkdir -p /var/keys/web /var/keys/worker &&
+    ssh-keygen -t rsa -f /var/keys/web/tsa_host_key -N '' &&
+    ssh-keygen -t rsa -f /var/keys/web/session_signing_key -N '' &&
+    ssh-keygen -t rsa -f /var/keys/worker/worker_key -N '' &&
+    cp /var/keys/worker/worker_key.pub /var/keys/web/authorized_worker_keys &&
+    cp /var/keys/web/tsa_host_key.pub /var/keys/worker"
 
-  concourse-web:
-    image: concourse/concourse
-    links: [concourse-db]
-    depends_on: [concourse-db]
-    command: web
-    restart: unless-stopped
-    ports:
+concourse-web:
+  image: concourse/concourse:3.9.0
+  labels:
+    io.rancher.container.hostname_override: container_name
+    io.rancher.sidekicks: concourse-datavolume
+  links: [concourse-db]
+  command: web
+  ports:
      - ${PORT}:8080
-    volumes_from:
-      - concourse-keygen:ro
-    environment:
-      CONCOURSE_BASIC_AUTH_USERNAME: ${USER}
-      CONCOURSE_BASIC_AUTH_PASSWORD: ${PASSWORD}
-      CONCOURSE_EXTERNAL_URL: "${DOMAIN_NAME}"
-      CONCOURSE_GITHUB_AUTH_CLIENT_ID: ${GITHUB_CLIENT_ID}
-      CONCOURSE_GITHUB_AUTH_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
-      CONCOURSE_GITHUB_AUTH_TEAM: ${GITHUB_AUTH_TEAM}
-      CONCOURSE_POSTGRES_HOST: ${DB_HOST}
-      CONCOURSE_POSTGRES_USER: ${DB_USER}
-      CONCOURSE_POSTGRES_PASSWORD: ${DB_PASSWD}
-      CONCOURSE_POSTGRES_DATABASE: ${DB_NAME}
-    labels:
-      io.rancher.sidekicks: concourse-keygen
-      rgon.domain: ${FQDN}
-      io.rancher.scheduler.affinity:host_label: "${WEB_INCLUDE}"
+  volumes_from:
+    - concourse-datavolume
+  environment:
+    CONCOURSE_BASIC_AUTH_USERNAME: ${USER}
+    CONCOURSE_BASIC_AUTH_PASSWORD: ${PASSWORD}
+    CONCOURSE_EXTERNAL_URL: "${DOMAIN_NAME}"
+    CONCOURSE_GITHUB_AUTH_CLIENT_ID: ${GITHUB_CLIENT_ID}
+    CONCOURSE_GITHUB_AUTH_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+    CONCOURSE_GITHUB_AUTH_TEAM: ${GITHUB_AUTH_TEAM}
+    CONCOURSE_TSA_HOST_KEY: "/var/keys/web/tsa_host_key"
+    CONCOURSE_TSA_AUTHORIZED_KEYS: "/var/keys/web/authorized_worker_keys"
+    CONCOURSE_SESSION_SIGNING_KEY: "/var/keys/web/session_signing_key"
+    CONCOURSE_POSTGRES_DATA_SOURCE: |-
+      postgres://${DB_USER}:${DB_PASSWD}@concourse-db:5432/concourse?sslmode=disable
 
-  concourse-worker1:
-    image: concourse/concourse
-    privileged: true
-    links: [concourse-web]
-    command: worker --tag=${WORKER1_TAG}
-    volumes_from:
-      - concourse-keygen:ro
-    environment:
-      CONCOURSE_TSA_HOST: concourse-web
-    labels:
-      io.rancher.scheduler.global: "${WORKER1_GLOBAL}"
-      io.rancher.scheduler.affinity:host_label: "${WORKER1_INCLUDE}"
-      io.rancher.scheduler.affinity:host_label_ne: "${WORKER1_EXCLUDE}"
+concourse-worker:
+  image: concourse/concourse:3.9.0
+  privileged: true
+  labels:
+    io.rancher.container.hostname_override: container_name
+    io.rancher.sidekicks: concourse-datavolume
+  links: [concourse-web]
+  command: worker
+  volumes_from:
+    - concourse-datavolume
+  environment:
+    CONCOURSE_TSA_HOST: concourse-web
+    CONCOURSE_TSA_PUBLIC_KEY: "/var/keys/worker/tsa_host_key.pub"
+    CONCOURSE_TSA_WORKER_PRIVATE_KEY: "/var/keys/worker/worker_key"
 
-{{- if eq .Values.WORKER2_USE true}} 
-  concourse-worker2:
-    image: concourse/concourse
-    privileged: true
-    links: [concourse-web]
-    command: worker --tag=${WORKER2_TAG}
-    volumes_from:
-      - concourse-keygen:ro
-    environment:
-      CONCOURSE_TSA_HOST: concourse-web
-    labels:
-      io.rancher.scheduler.global: "${WORKER2_GLOBAL}"
-      io.rancher.scheduler.affinity:host_label: "${WORKER2_INCLUDE}"
-      io.rancher.scheduler.affinity:host_label_ne: "${WORKER2_EXCLUDE}"
-{{- end}}
